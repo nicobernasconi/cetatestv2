@@ -1,0 +1,25 @@
+// Declarative plugin management for Flutter & Android (migrated from imperative apply script).
+pluginManagement {
+	def localPropertiesFile = new File(rootDir, "local.properties")
+	def properties = new Properties()
+	assert localPropertiesFile.exists()
+	localPropertiesFile.withReader("UTF-8") { properties.load(it) }
+	def flutterSdkPath = properties.getProperty("flutter.sdk")
+	assert flutterSdkPath != null : "flutter.sdk not set in local.properties"
+	// Makes Flutter's Gradle plugins (including loader + android integration) available.
+	includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+	repositories {
+		google()
+		mavenCentral()
+		gradlePluginPortal()
+	}
+}
+
+plugins {
+	id "dev.flutter.flutter-plugin-loader" version "1.0.0"
+	// Actualiza AGP y Kotlin (avisos de deprecación eliminados)
+	id "com.android.application" version "8.3.2" apply false
+	id "org.jetbrains.kotlin.android" version "1.9.24" apply false
+}
+
+include ':app'
