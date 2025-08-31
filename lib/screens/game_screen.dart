@@ -8,6 +8,7 @@ import 'package:cetatest/ui/colors_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cetatest/ui/size_config.dart';
 
 import '../providers/ui_provider.dart';
 
@@ -19,7 +20,6 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late AnimationController _controller;
   final List<String> cardPairs = [
     '1',
     '1a',
@@ -35,7 +35,6 @@ class _GameScreenState extends State<GameScreen> {
     '6a',
   ];
 
-  bool _isScreenActive = true;
   late AudioPlayer audioPlayer;
   late Timer _timer;
   late Timer _timerShowingCards;
@@ -111,15 +110,14 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void dispose() {
     _timer.cancel();
-    _isScreenActive = false;
     stopBackgroundMusic();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-
-    final screenSize = MediaQuery.of(context).size;
+  UIScale.init(context);
+  final screenSize = MediaQuery.of(context).size;
     final uiProvider = Provider.of<UIProvider>(context);
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
@@ -144,19 +142,34 @@ class _GameScreenState extends State<GameScreen> {
   Widget buildGameLayout(Size screenSize, UIProvider uiProvider, String email) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        UIScale.init(context); // asegurar recalculo si cambia orientación
         final isPortrait = constraints.maxWidth < constraints.maxHeight;
         if (isPortrait) {
           // En vertical apilamos para evitar overflow horizontal
-            return Column(
+          final scoreHeight = (constraints.maxHeight * 0.22)
+              .clamp(UIScale.h(150), UIScale.h(260));
+          final gridAvailableHeight = constraints.maxHeight - scoreHeight - UIScale.h(12);
+          return Stack(
             children: [
-              Expanded(
-                flex: 6,
-                child: buildCardGrid(uiProvider, screenSize, email),
+              // Grilla centrada vertical y horizontalmente
+              Align(
+                alignment: Alignment.center,
+                child: SizedBox(
+                  height: gridAvailableHeight,
+                  child: buildCardGrid(uiProvider, screenSize, email,
+                      isPortrait: true, maxWidth: constraints.maxWidth),
+                ),
               ),
-              SizedBox(height: screenSize.height * 0.015),
-              Expanded(
-                flex: 2, // reducido (antes 4) para ~2/3 del tamaño previo
-                child: buildScoreAndTimeContainer(screenSize, uiProvider),
+              // Panel de puntaje anclado abajo
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: UIScale.h(4)),
+                  child: SizedBox(
+                    height: scoreHeight,
+                    child: buildScoreAndTimeContainer(screenSize, uiProvider),
+                  ),
+                ),
               ),
             ],
           );
@@ -167,9 +180,11 @@ class _GameScreenState extends State<GameScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: buildCardGrid(uiProvider, screenSize, email),
+              child: buildCardGrid(uiProvider, screenSize, email,
+                  isPortrait: false, maxWidth: constraints.maxWidth),
             ),
-            SizedBox(width: constraints.maxWidth * 0.02),
+            // Espacio reducido entre grilla y panel (antes 2% del ancho)
+            SizedBox(width: (constraints.maxWidth * 0.012).clamp(6.0, 18.0)),
             SizedBox(
               width: panelWidth.clamp(180.0, 260.0),
               child: buildScoreAndTimeContainer(screenSize, uiProvider),
@@ -180,33 +195,84 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
-  Widget buildCardGrid(UIProvider uiProvider, Size screenSize, String email) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Spacer(),
-        Center(
-          child: FractionallySizedBox(
-            widthFactor: 0.87, // mismo factor de ancho que venías usando
-            child: GridView.builder(
-              physics: const NeverScrollableScrollPhysics(),
+  Widget buildCardGrid(UIProvider uiProvider, Size screenSize, String email,
+      {required bool isPortrait, required double maxWidth}) {
+    final horizontalPadding = UIScale.w(8);
+    final spacingH = UIScale.w(9).clamp(4, 14); // separación horizontal solicitada
+    final spacingV = UIScale.h(14).clamp(8, 24); // vertical algo mayor
+    final baseWidthFactor = isPortrait ? 0.92 : 0.88;
+  const double gridScale = 1.0; // revertimos reducción (tamaño completo)
+  final widthFactor = (baseWidthFactor * gridScale).clamp(0.5, 0.95);
+    // Aspect ratio fijo cuadrado según proporción de maqueta
+    double aspectRatio = 1.0;
+    return Center(
+      child: FractionallySizedBox(
+        widthFactor: widthFactor,
+        child: LayoutBuilder(
+          builder: (ctx, box) {
+            bool allowScroll = false;
+            final availableHeight = box.maxHeight;
+            final totalSpacing = spacingV * 2 + UIScale.h(20);
+            final cardWidth = (box.maxWidth - (spacingH * 3)) / 4;
+            double cardHeight = cardWidth / aspectRatio; // inicial
+            double estimatedHeight = cardHeight * 3 + totalSpacing; // altura grilla
+            if (!isPortrait) {
+              // En landscape queremos que coincida con panel (~90% del alto)
+              final targetHeight = availableHeight * 0.90;
+              if (estimatedHeight > targetHeight) {
+                // Aplanamos cartas aumentando aspectRatio para reducir altura
+                final neededScale = targetHeight / estimatedHeight; // <1
+                aspectRatio = (aspectRatio / neededScale).clamp(0.8, 2.0);
+                cardHeight = cardWidth / aspectRatio;
+                estimatedHeight = cardHeight * 3 + totalSpacing;
+              }
+            } else {
+              // Portrait: si no entra toda la grilla, permitir scroll manteniendo cuadrado
+              if (estimatedHeight > availableHeight) {
+                allowScroll = true;
+              }
+            }
+            // Portrait: intentar aplanar antes de permitir scroll
+            if (isPortrait && estimatedHeight > availableHeight) {
+              final targetHeight = availableHeight * 0.98; // margen leve
+              final neededScale = targetHeight / estimatedHeight; // <1
+              aspectRatio = (aspectRatio / neededScale).clamp(0.8, 2.2);
+              cardHeight = cardWidth / aspectRatio;
+              estimatedHeight = cardHeight * 3 + totalSpacing;
+              if (estimatedHeight > availableHeight) {
+                allowScroll = true;
+              }
+            }
+            final grid = GridView.builder(
+              physics: allowScroll
+                  ? const BouncingScrollPhysics()
+                  : const NeverScrollableScrollPhysics(),
               shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              padding: EdgeInsets.symmetric(
+                  horizontal: horizontalPadding, vertical: UIScale.h(8)),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
+                mainAxisSpacing: spacingV.toDouble(),
+                crossAxisSpacing: spacingH.toDouble(),
+                childAspectRatio: aspectRatio,
               ),
               itemCount: cardPairs.length,
               itemBuilder: (context, index) {
                 final cardId = cardPairs[index];
                 return buildMemoryCard(uiProvider, cardId, screenSize, email);
               },
-            ),
-          ),
+            );
+            // Añadimos Expanded arriba y abajo para centrar y permitir compresión
+            return Column(
+              children: [
+                const Expanded(child: SizedBox()),
+                grid,
+                const Expanded(child: SizedBox()),
+              ],
+            );
+          },
         ),
-        const Spacer(),
-      ],
+      ),
     );
   }
 
@@ -293,8 +359,8 @@ class _GameScreenState extends State<GameScreen> {
         }
       },
       child: FractionallySizedBox(
-        widthFactor: 0.97,
-        heightFactor: 0.97,
+        widthFactor: 1.0,
+        heightFactor: 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 500),
           decoration: BoxDecoration(
@@ -309,58 +375,60 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget buildScoreAndTimeContainer(Size screenSize, UIProvider uiProvider) {
-  return FractionallySizedBox(
-    heightFactor: 0.90, // antes 0.99 -> reduce ~3% del alto total
-    child: Container(
-      margin: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1b1e29),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          // Sombra ancha y más sólida en color principal
-          BoxShadow(
-            color: Color(0xCCEF8332), // más opaco
-            offset: Offset(0, 7),
-          ),
-          // Sombra secundaria suave para profundidad
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 12,
-            spreadRadius: 1,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Spacer(),
-          _StatBox(
-            label: 'Puntaje:',
-            value: '${uiProvider.marcadorActual}/6',
-          ),
-          const SizedBox(height: 28),
-          _StatBox(
-            label: 'Tiempo:',
-            value: formatTime(_timeInSeconds),
-          ),
-          const Spacer(),
-          Center(
-            child: SizedBox(
-              height: 55,
-              child: Image.asset(
-                'assets/images/logo_ceta_puntaje.png',
-                fit: BoxFit.contain,
+    final paddingH = UIScale.w(10);
+    final paddingV = UIScale.h(10);
+    final gapBoxes = UIScale.h(24).clamp(16, 36);
+    final logoHeight = UIScale.h(55).clamp(40, 70);
+    return FractionallySizedBox(
+      heightFactor: 0.90,
+      child: Container(
+        margin: EdgeInsets.symmetric(vertical: UIScale.h(10)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1b1e29),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xCCEF8332),
+              offset: Offset(0, 7),
+            ),
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 12,
+              spreadRadius: 1,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Spacer(),
+            _StatBox(
+              label: 'Puntaje:',
+              value: '${uiProvider.marcadorActual}/6',
+            ),
+            SizedBox(height: gapBoxes.toDouble()),
+            _StatBox(
+              label: 'Tiempo:',
+              value: formatTime(_timeInSeconds),
+            ),
+            const Spacer(),
+            Center(
+              child: SizedBox(
+                height: logoHeight.toDouble(),
+                child: Image.asset(
+                  'assets/images/logo_ceta_puntaje.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
   String formatTime(int seconds) {
     int minutes = seconds ~/ 60;
     int remainingSeconds = seconds % 60;
@@ -392,8 +460,10 @@ class _StatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  UIScale.init(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    padding: EdgeInsets.symmetric(
+      horizontal: UIScale.w(6), vertical: UIScale.h(4)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -405,7 +475,7 @@ class _StatBox extends StatelessWidget {
           Text(
             label,
             style: GoogleFonts.poppins(
-              fontSize: 18,
+        fontSize: UIScale.fDown(18),
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
@@ -414,7 +484,7 @@ class _StatBox extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 50,
+              fontSize: UIScale.fDown(54),
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),

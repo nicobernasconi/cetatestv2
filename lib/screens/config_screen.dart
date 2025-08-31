@@ -44,48 +44,51 @@ class _ConfigScreenState extends State<ConfigScreen> {
         title: const Text('Configuración'),
         backgroundColor: ColoresApp.colorSecundario,
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: SingleChildScrollView(
-              child: Container(
-                color: ColoresApp.colorFondoGeneral,
-                padding: EdgeInsets.all(size.width * 0.05),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
+      body: SingleChildScrollView(
+        padding: EdgeInsets.only(bottom: size.height * 0.06),
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          children: <Widget>[
+            Container(
+              color: ColoresApp.colorFondoGeneral,
+              padding: EdgeInsets.all(size.width * 0.05),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
                       buildConfigItem(
                         "Correo Electrónico:",
                         Row(
                           children: [
                             Expanded(
                               child: TextFormField(
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 18,
-                                  color: ColoresApp.colorSecundario,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
                                 ),
                                 initialValue: email,
                                 onChanged: (value) {
-                                  setState(() {
-                                    email = value;
-                                  });
+                                  setState(() => email = value);
                                 },
                                 decoration: InputDecoration(
-                                  hintText:
-                                      'Ingresa el correo electrónico de marketing',
-                                  hintStyle: TextStyle(
+                                  hintText: 'Ingresa el correo electrónico de marketing',
+                                  hintStyle: const TextStyle(
                                     fontSize: 18,
-                                    color: ColoresApp.colorSecundario,
+                                    color: Colors.white70,
                                   ),
-                                  suffixIcon: Icon(
-                                    Icons.email,
-                                    color: ColoresApp.colorFondoImagenes,
+                                  filled: true,
+                                  fillColor: const Color(0xFFf47b30),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(40),
+                                    borderSide: const BorderSide(color: Colors.transparent),
                                   ),
-                                  labelStyle: TextStyle(
-                                    fontSize: 18,
-                                    color: ColoresApp.colorSecundario,
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(40),
+                                    borderSide: const BorderSide(color: Colors.white70, width: 1),
                                   ),
+                                  suffixIcon: const Icon(Icons.email, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -166,30 +169,28 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       buildConfigItem(
                         "Premios:", // Etiqueta para el campo de premios
                         TextFormField(
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
-                            color: ColoresApp.colorSecundario,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
                           initialValue: premios,
-                          onChanged: (value) {
-                            setState(() {
-                              premios = value;
-                            });
-                          },
+                          onChanged: (value) => setState(() => premios = value),
                           decoration: InputDecoration(
                             hintText: 'Ingresa los premios',
-                            hintStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
+                            hintStyle: const TextStyle(fontSize: 18, color: Colors.white70),
+                            filled: true,
+                            fillColor: const Color(0xFFf47b30),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.transparent),
                             ),
-                            suffixIcon: Icon(
-                              Icons.star,
-                              color: ColoresApp.colorFondoImagenes,
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.white70, width: 1),
                             ),
-                            labelStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
-                            ),
+                            suffixIcon: const Icon(Icons.star, color: Colors.white),
                           ),
                         ),
                         size,
@@ -197,31 +198,29 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       buildConfigItem(
                         "Tiempo del juego (segundos):",
                         TextFormField(
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
-                            color: ColoresApp.colorSecundario,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
                           initialValue: gameTime.toString(),
                           keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            setState(() {
-                              gameTime = int.tryParse(value) ?? 0;
-                            });
-                          },
+                          onChanged: (value) => setState(() => gameTime = int.tryParse(value) ?? 0),
                           decoration: InputDecoration(
                             hintText: 'Ingresa el tiempo del juego en segundos',
-                            hintStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
+                            hintStyle: const TextStyle(fontSize: 18, color: Colors.white70),
+                            filled: true,
+                            fillColor: const Color(0xFFf47b30),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.transparent),
                             ),
-                            suffixIcon: Icon(
-                              Icons.timer,
-                              color: ColoresApp.colorFondoImagenes,
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.white70, width: 1),
                             ),
-                            labelStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
-                            ),
+                            suffixIcon: const Icon(Icons.timer, color: Colors.white),
                           ),
                         ),
                         size,
@@ -292,84 +291,72 @@ class _ConfigScreenState extends State<ConfigScreen> {
                       buildConfigItem(
                         "Cantidad de Juegos:",
                         TextFormField(
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 18,
-                            color: ColoresApp.colorSecundario,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
                           ),
                           initialValue: cantidadJuegos.toString(),
                           keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            setState(() {
-                              cantidadJuegos = int.tryParse(value) ?? 0;
-                            });
-                          },
+                          onChanged: (value) => setState(() => cantidadJuegos = int.tryParse(value) ?? 0),
                           decoration: InputDecoration(
                             hintText: 'Ingresa la cantidad de juegos',
-                            hintStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
+                            hintStyle: const TextStyle(fontSize: 18, color: Colors.white70),
+                            filled: true,
+                            fillColor: const Color(0xFFf47b30),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.transparent),
                             ),
-                            suffixIcon: Icon(
-                              Icons.gamepad,
-                              color: ColoresApp.colorFondoImagenes,
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(40),
+                              borderSide: const BorderSide(color: Colors.white70, width: 1),
                             ),
-                            labelStyle: TextStyle(
-                              fontSize: 18,
-                              color: ColoresApp.colorSecundario,
-                            ),
+                            suffixIcon: const Icon(Icons.gamepad, color: Colors.white),
                           ),
                         ),
                         size,
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
-          ),
-          Container(
-            color: ColoresApp.colorPrimario,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: <Widget>[
-                MaterialButton(
-                  onPressed: () {
-                    Navigator.pushReplacementNamed(context, 'home');
-                  },
-                  color: ColoresApp.colorSecundario,
-                  child: Text(
-                    'Volver',
-                    style: TextStyle(
-                      fontSize: (size.height * 0.05),
-                      color: ColoresApp.colorFondoImagenes,
-                    ),
-                  ),
+            const SizedBox(height: 12),
+            Container(
+              margin: EdgeInsets.symmetric(horizontal: size.width * 0.05),
+              decoration: BoxDecoration(
+                color: ColoresApp.colorPrimario,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                _ConfigActionButton(
+                  label: 'Volver',
+                  onTap: () => Navigator.pushReplacementNamed(context, 'home'),
+                  size: size,
                 ),
-                MaterialButton(
-                  onPressed: () {
+                _ConfigActionButton(
+                  label: 'Guardar',
+                  onTap: () {
                     prefs.tiempoJuego = gameTime;
                     prefs.dificultalJuego = difficulty;
                     prefs.musica = music;
                     prefs.sonido = sound;
                     prefs.emailMarketing = email;
-                    prefs.premios = premios; // Guardar los premios
-                    prefs.cantJuegos = 
-                        cantidadJuegos; // Guardar la cantidad de juegos
+                    prefs.premios = premios;
+                    prefs.cantJuegos = cantidadJuegos;
                     Navigator.pushReplacementNamed(context, 'home');
                   },
-                  color: ColoresApp.colorFondoImagenes,
-                  child: Text(
-                    'Guardar',
-                    style: TextStyle(
-                      fontSize: (size.height * 0.05),
-                      color: ColoresApp.colorPrimario,
-                    ),
-                  ),
+                  size: size,
                 ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -394,6 +381,47 @@ class _ConfigScreenState extends State<ConfigScreen> {
             child: widget,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ConfigActionButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  final Size size;
+  const _ConfigActionButton({required this.label, required this.onTap, required this.size});
+
+  @override
+  Widget build(BuildContext context) {
+    // Coincide con estilo de MailScreen: contenedor oscuro con sombra naranja
+    final buttonWidth = size.width * 0.30;
+    final buttonHeight = size.height * 0.06;
+    return MaterialButton(
+      onPressed: onTap,
+      padding: EdgeInsets.zero,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Container(
+        width: buttonWidth.clamp(140, 320),
+        height: buttonHeight.clamp(42, 70),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1b1e29),
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(color: Color(0xFFEF8332), offset: Offset(0, 6)),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 24.0,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
       ),
     );
   }

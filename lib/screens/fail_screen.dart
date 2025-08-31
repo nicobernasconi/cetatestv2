@@ -2,6 +2,7 @@ import 'package:cetatest/shared_pref/preferencias_usuario.dart';
 import 'package:flutter/material.dart';
 import 'package:cetatest/ui/colors_ui.dart';
 import 'package:provider/provider.dart';
+import '../ui/size_config.dart';
 import '../providers/ui_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 
@@ -22,7 +23,7 @@ class _FailScreenState extends State<FailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance!.addPostFrameCallback((_) async {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Reproduce el sonido después de que el widget se haya construido
 
       if (prefs.sonido) {
@@ -39,7 +40,8 @@ class _FailScreenState extends State<FailScreen> {
   Widget build(BuildContext context) {
     final Map<String, dynamic> args =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final Size size = MediaQuery.of(context).size;
+  final Size size = MediaQuery.of(context).size;
+  UIScale.init(context);
     final uiProvider = Provider.of<UIProvider>(context, listen: false);
 
     final int marcadores = args['marcador'] ?? 0;
@@ -81,11 +83,11 @@ class _FailScreenState extends State<FailScreen> {
                           child: Text(
                             '¡Perdiste!',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Poppins',
                               fontWeight: FontWeight.w700,
-                              fontSize: 108,
-                              color: Color(0xFFF47B30),
+                              fontSize: UIScale.fDown(108),
+                              color: const Color(0xFFF47B30),
                             ),
                           ),
                         ),
@@ -214,12 +216,14 @@ class _FailScreenState extends State<FailScreen> {
                               ),
                             ],
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
                               'Reintentar',
                               style: TextStyle(
                                 fontSize: 24.0,
                                 color: Colors.white,
+                                fontFamily: 'Poppins',
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ),

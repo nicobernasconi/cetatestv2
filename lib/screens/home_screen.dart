@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.only(top: size.height * 0.1),
                   child: Image.asset(
                     'assets/images/logo_ceta.png',
-                    width: size.width * 0.5,
+                    width: 275,
                   ),
                 ),
                 Expanded(child: Container()),
