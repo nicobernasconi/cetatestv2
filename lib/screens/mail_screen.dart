@@ -1,6 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
-import 'package:cetatest/ui/colors_ui.dart';
+import 'package:cetatest_v2/ui/colors_ui.dart';
 import '../ui/size_config.dart';
 import '../shared_pref/preferencias_usuario.dart';
 
@@ -99,17 +99,13 @@ class _MailScreenState extends State<MailScreen> {
 
     return Scaffold(
       backgroundColor: ColoresApp.colorFondoGeneral,
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final needsScroll = constraints.maxHeight < 700;
-          final core = Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: content,
-            ),
-          );
-          return needsScroll ? SingleChildScrollView(child: core) : core;
-        },
+      // Evita reconstrucciones con diferente jerarquía cuando cambia la altura por el teclado.
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Center(child: content),
+        ),
       ),
     );
   }
