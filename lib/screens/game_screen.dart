@@ -282,16 +282,11 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Widget buildMemoryCard(
-
-    
       UIProvider uiProvider, String cardId, Size screenSize, String email) {
-        
+    // Estado de la carta
     bool isFlipped = uiProvider.isCardFlipped(cardId);
     bool isRemoved = uiProvider.checkCardRemoved(cardId);
-
-  // Variables anteriores de imagen eliminadas; se usan directamente en AnimatedSwitcher.
-
-    final faceUp = isFlipped || _showingCards || isRemoved;
+    final bool faceUp = isFlipped || _showingCards || isRemoved;
 
     return GestureDetector(
       onTap: () {
@@ -352,44 +347,37 @@ class _GameScreenState extends State<GameScreen> {
       child: FractionallySizedBox(
         widthFactor: 1.0,
         heightFactor: 1.0,
-        child: AnimatedSwitcher(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween<double>(begin: 0, end: faceUp ? 1 : 0),
           duration: const Duration(milliseconds: 420),
-            switchInCurve: Curves.easeOutBack,
-            switchOutCurve: Curves.easeInBack,
-          transitionBuilder: (child, animation) {
-            // Animación de giro 3D
-            final rotateAnim = Tween<double>(begin: math.pi, end: 0).animate(animation);
-            return AnimatedBuilder(
-              animation: rotateAnim,
-              child: child,
-              builder: (context, child) {
-                final isBack = child!.key.toString().contains('back');
-                // Ajuste para que la cara trasera rote inversa evitando espejo
-                final angle = isBack ? rotateAnim.value : math.pi - rotateAnim.value;
-                return Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()
-                    ..setEntry(3, 2, 0.001)
-                    ..rotateY(angle),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: child,
-                  ),
-                );
-              },
+          curve: Curves.easeInOut,
+          builder: (context, value, child) {
+            // value: 0 (dorso) -> 1 (frente)
+            final angle = value * math.pi; // 0..pi
+            // Determinar qué cara mostrar
+            final showFront = angle > math.pi / 2;
+            Widget front = Image.asset('assets/images/card_$cardId.png');
+            Widget back = Image.asset('assets/images/card_back.png');
+            return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001) // perspectiva ligera
+                ..rotateY(angle),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                // Corregimos espejo del frente aplicando rotación adicional
+                child: showFront
+                    ? Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()..rotateY(math.pi),
+                        child: front,
+                      )
+                    : back,
+              ),
             );
           },
-          child: faceUp
-              ? Image.asset(
-                  'assets/images/card_$cardId.png',
-                  key: ValueKey('front_$cardId'),
-                )
-              : Image.asset(
-                  'assets/images/card_back.png',
-                  key: ValueKey('back_$cardId'),
-                ),
         ),
       ),
     );
