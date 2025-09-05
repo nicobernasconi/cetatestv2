@@ -3,12 +3,12 @@ import 'package:flutter/animation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:cetatest/shared_pref/preferencias_usuario.dart';
-import 'package:cetatest/ui/colors_ui.dart';
+import 'package:cetatest_v2/shared_pref/preferencias_usuario.dart';
+import 'package:cetatest_v2/ui/colors_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:cetatest/ui/size_config.dart';
+import 'package:cetatest_v2/ui/size_config.dart';
 
 import '../providers/ui_provider.dart';
 
@@ -63,7 +63,11 @@ class _GameScreenState extends State<GameScreen> {
     _timeInSeconds = prefs.tiempoJuego;
     _intentos = 0;
     _marcador = 0;
-    _showingTime = 4 - prefs.dificultalJuego;
+  // Reducimos el tiempo que se muestran las cartas al inicio.
+  // Antes: 4 - dificultad  (0..3) => 4,3,2,1
+  // Ahora: base 2 => 2,1,0,0 para dificultades 0..3 (más rápido iniciar el juego).
+  const int baseShowSeconds = 2;
+  _showingTime = (baseShowSeconds - prefs.dificultalJuego).clamp(0, baseShowSeconds);
     _showingCards = (_showingTime > 0);
     // Mostrar las cartas durante un tiempo determinado antes de comenzar el juego
 
@@ -378,14 +382,14 @@ class _GameScreenState extends State<GameScreen> {
     final paddingH = UIScale.w(10);
     final paddingV = UIScale.h(10);
     final gapBoxes = UIScale.h(24).clamp(16, 36);
-    final logoHeight = UIScale.h(55).clamp(40, 70);
+    final logoWidth = UIScale.w(90).clamp(80.0, 160.0); // Ajuste ahora por width
     return FractionallySizedBox(
       heightFactor: 0.90,
       child: Container(
         margin: EdgeInsets.symmetric(vertical: UIScale.h(10)),
         decoration: BoxDecoration(
           color: const Color(0xFF1b1e29),
-          borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.white, width: 2),
           boxShadow: const [
             BoxShadow(
@@ -417,7 +421,7 @@ class _GameScreenState extends State<GameScreen> {
             const Spacer(),
             Center(
               child: SizedBox(
-                height: logoHeight.toDouble(),
+                width: logoWidth,
                 child: Image.asset(
                   'assets/images/logo_ceta_puntaje.png',
                   fit: BoxFit.contain,
@@ -484,7 +488,7 @@ class _StatBox extends StatelessWidget {
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: UIScale.fDown(54),
+              fontSize: UIScale.fDown(35),
               fontWeight: FontWeight.bold,
               color: Colors.black,
             ),
