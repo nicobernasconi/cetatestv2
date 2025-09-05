@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/animation.dart';
 import 'package:flutter/widgets.dart';
 
@@ -288,91 +289,107 @@ class _GameScreenState extends State<GameScreen> {
     bool isFlipped = uiProvider.isCardFlipped(cardId);
     bool isRemoved = uiProvider.checkCardRemoved(cardId);
 
-    String cardImage =
-        isFlipped || _showingCards ? 'card_$cardId.png' : 'card_back.png';
-    String cardImageKey = isFlipped ? 'card_$cardId' : 'card_back_$cardId';
+  // Variables anteriores de imagen eliminadas; se usan directamente en AnimatedSwitcher.
 
-    if (isRemoved) {
-      cardImage = 'card_$cardId.png';
-    }
+    final faceUp = isFlipped || _showingCards || isRemoved;
 
     return GestureDetector(
       onTap: () {
-        if (!_victory &&
-            !isFlipped &&
-            !isRemoved &&
-            uiProvider.flippedCards.length < 2) {
-          setState(() {
-            uiProvider.addFlippedCard(cardId);
-
-            if (uiProvider.flippedCards.length == 2) {
-              _intentos++;
-              int firstCardId = int.parse(uiProvider.flippedCards[0][0]);
-              int secondCardId = int.parse(cardId[0]);
-
-              if (firstCardId == secondCardId) {
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  final player = AudioPlayer();
-                  if (prefs.sonido) {
-                    await player.setVolume(1.0);
-                    await player.setSource(AssetSource('sounds/correct.mp3'));
-                    await player.resume();
-                  }
-                });
-                _marcador++;
-                uiProvider.addMarcador();
-                uiProvider.removeCard(cardId);
-                uiProvider.removeCard(_firstSelectedCardId);
-                uiProvider.resetFlippedCards();
-                if (uiProvider.cardsRemoved.length == 12) {
-                  uiProvider.isGameWon = true;
-                  _timer.cancel();
+        if (_victory || isFlipped || isRemoved || uiProvider.flippedCards.length >= 2) return;
+        setState(() {
+          uiProvider.addFlippedCard(cardId);
+          if (uiProvider.flippedCards.length == 2) {
+            _intentos++;
+            int firstCardId = int.parse(uiProvider.flippedCards[0][0]);
+            int secondCardId = int.parse(cardId[0]);
+            if (firstCardId == secondCardId) {
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                final player = AudioPlayer();
+                if (prefs.sonido) {
+                  await player.setVolume(1.0);
+                  await player.setSource(AssetSource('sounds/correct.mp3'));
+                  await player.resume();
                 }
-
-                if (uiProvider.isGameWon) {
-                  _victory = true;
-                  prefs.cantJuegosJugados++;
-                  Navigator.pushReplacementNamed(context, 'finish', arguments: {
-                    'marcador': uiProvider.marcadorActual,
-                    'tiempo': _timeInSeconds,
-                    'intentos': _intentos,
-                    'email': email,
-                  });
-
-
-                }
-              } else {
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  final player = AudioPlayer();
-                  if (prefs.sonido) {
-                    await player.setVolume(1.0);
-                    await player
-                        .setSource(AssetSource('sounds/negative_beeps.mp3'));
-                    await player.resume();
-                  }
-                });
-                Future.delayed(const Duration(milliseconds: 1000), () async {
-                  uiProvider.resetFlippedCards();
-                  setState(() {});
+              });
+              _marcador++;
+              uiProvider.addMarcador();
+              uiProvider.removeCard(cardId);
+              uiProvider.removeCard(_firstSelectedCardId);
+              uiProvider.resetFlippedCards();
+              if (uiProvider.cardsRemoved.length == 12) {
+                uiProvider.isGameWon = true;
+                _timer.cancel();
+              }
+              if (uiProvider.isGameWon) {
+                _victory = true;
+                prefs.cantJuegosJugados++;
+                Navigator.pushReplacementNamed(context, 'finish', arguments: {
+                  'marcador': uiProvider.marcadorActual,
+                  'tiempo': _timeInSeconds,
+                  'intentos': _intentos,
+                  'email': email,
                 });
               }
-            } else if (uiProvider.flippedCards.length == 1) {
-              _firstSelectedCardId = cardId;
+            } else {
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                final player = AudioPlayer();
+                if (prefs.sonido) {
+                  await player.setVolume(1.0);
+                  await player.setSource(AssetSource('sounds/negative_beeps.mp3'));
+                  await player.resume();
+                }
+              });
+              Future.delayed(const Duration(milliseconds: 900), () async {
+                uiProvider.resetFlippedCards();
+                if (mounted) setState(() {});
+              });
             }
-          });
-        }
+          } else if (uiProvider.flippedCards.length == 1) {
+            _firstSelectedCardId = cardId;
+          }
+        });
       },
       child: FractionallySizedBox(
         widthFactor: 1.0,
         heightFactor: 1.0,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Center(
-            child: Image.asset('assets/images/$cardImage', key: Key(cardImageKey)),
-          ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 420),
+            switchInCurve: Curves.easeOutBack,
+            switchOutCurve: Curves.easeInBack,
+          transitionBuilder: (child, animation) {
+            // Animación de giro 3D
+            final rotateAnim = Tween<double>(begin: math.pi, end: 0).animate(animation);
+            return AnimatedBuilder(
+              animation: rotateAnim,
+              child: child,
+              builder: (context, child) {
+                final isBack = child!.key.toString().contains('back');
+                // Ajuste para que la cara trasera rote inversa evitando espejo
+                final angle = isBack ? rotateAnim.value : math.pi - rotateAnim.value;
+                return Transform(
+                  alignment: Alignment.center,
+                  transform: Matrix4.identity()
+                    ..setEntry(3, 2, 0.001)
+                    ..rotateY(angle),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: child,
+                  ),
+                );
+              },
+            );
+          },
+          child: faceUp
+              ? Image.asset(
+                  'assets/images/card_$cardId.png',
+                  key: ValueKey('front_$cardId'),
+                )
+              : Image.asset(
+                  'assets/images/card_back.png',
+                  key: ValueKey('back_$cardId'),
+                ),
         ),
       ),
     );
