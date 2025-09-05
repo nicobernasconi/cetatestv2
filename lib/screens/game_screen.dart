@@ -38,7 +38,6 @@ class _GameScreenState extends State<GameScreen> {
 
   late AudioPlayer audioPlayer;
   late Timer _timer;
-  late Timer _timerShowingCards;
   int _timeInSeconds = 0;
   PreferenciasUsuario prefs = PreferenciasUsuario();
   bool _victory = false;
@@ -46,8 +45,10 @@ class _GameScreenState extends State<GameScreen> {
   int _intentos = 0;
   int _marcador = 0;
   String _email = '';
-  bool _showingCards = false; // Mostrar cartas al inicio
-  int _showingTime = 0; // Tiempo en segundos para mostrar cartas
+  // Flags para secuencia de revelado inicial
+  bool _globalForceFaceUp = false; // fuerza mostrar todas las cartas (reveal)
+  int _showingTime = 0; // tiempo base (segundos) que permanecen totalmente descubiertas
+  bool _canTap = false; // se habilitan taps sólo cuando termina la secuencia inicial
 
   @override
   void initState() {
@@ -67,28 +68,36 @@ class _GameScreenState extends State<GameScreen> {
   // Reducimos el tiempo que se muestran las cartas al inicio.
   // Antes: 4 - dificultad  (0..3) => 4,3,2,1
   // Ahora: base 2 => 2,1,0,0 para dificultades 0..3 (más rápido iniciar el juego).
-  const int baseShowSeconds = 2;
-  _showingTime = (baseShowSeconds - prefs.dificultalJuego).clamp(0, baseShowSeconds);
-    _showingCards = (_showingTime > 0);
-    // Mostrar las cartas durante un tiempo determinado antes de comenzar el juego
-
-    if (_showingCards) {
-      startShowingCardsTimer();
-    } else {
-      startTimer();
-    }
+  const int baseShowSeconds = 3;
+    _showingTime = (baseShowSeconds - prefs.dificultalJuego).clamp(0, baseShowSeconds);
+    // Lanzar secuencia de animación inicial siempre (aunque _showingTime sea 0, se muestra breve)
+    _runInitialRevealSequence();
   }
 
-  void startShowingCardsTimer() {
-    _timerShowingCards = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_showingTime > 0) {
-          _showingTime--;
-        } else {
-          _showingCards = false;
-          _timerShowingCards.cancel();
-          startTimer();
-        }
+  void _runInitialRevealSequence() {
+    // Fase 1: cartas tapadas medio segundo (impacto visual antes de revelar)
+    _canTap = false;
+    _globalForceFaceUp = false;
+    setState(() {});
+    const revealDelay = Duration(milliseconds: 500);
+  final holdRevealedSeconds = _showingTime > 0 ? _showingTime : 1; // mínimo 1 segundo visible
+  const extraHold = Duration(milliseconds: 500); // ampliación solicitada
+    final flipDuration = const Duration(milliseconds: 420);
+    Future.delayed(revealDelay, () {
+      if (!mounted) return;
+      // Fase 2: animar flip para descubrir todas
+      setState(() => _globalForceFaceUp = true);
+      // Fase 3: mantener descubiertas
+  Future.delayed(flipDuration + Duration(seconds: holdRevealedSeconds) + extraHold, () {
+        if (!mounted) return;
+        // Fase 4: volver a tapar animando
+        setState(() => _globalForceFaceUp = false);
+        // Esperar a que termine la animación de cierre y comenzar juego
+        Future.delayed(flipDuration, () {
+          if (!mounted) return;
+            _canTap = true;
+            startTimer();
+        });
       });
     });
   }
@@ -286,11 +295,11 @@ class _GameScreenState extends State<GameScreen> {
     // Estado de la carta
     bool isFlipped = uiProvider.isCardFlipped(cardId);
     bool isRemoved = uiProvider.checkCardRemoved(cardId);
-    final bool faceUp = isFlipped || _showingCards || isRemoved;
+  final bool faceUp = isFlipped || _globalForceFaceUp || isRemoved;
 
     return GestureDetector(
       onTap: () {
-        if (_victory || isFlipped || isRemoved || uiProvider.flippedCards.length >= 2) return;
+  if (!_canTap || _victory || isFlipped || isRemoved || uiProvider.flippedCards.length >= 2) return;
         setState(() {
           uiProvider.addFlippedCard(cardId);
           if (uiProvider.flippedCards.length == 2) {
@@ -387,7 +396,7 @@ class _GameScreenState extends State<GameScreen> {
     final paddingH = UIScale.w(10);
     final paddingV = UIScale.h(10);
     final gapBoxes = UIScale.h(24).clamp(16, 36);
-    final logoWidth = UIScale.w(90).clamp(80.0, 160.0); // Ajuste ahora por width
+    final logoWidth = UIScale.w(80).clamp(80.0, 160.0); // Ajuste ahora por width
     return FractionallySizedBox(
       heightFactor: 0.90,
       child: Container(
@@ -412,7 +421,7 @@ class _GameScreenState extends State<GameScreen> {
         padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: paddingV),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+            children: [
             const Spacer(),
             _StatBox(
               label: 'Puntaje:',
@@ -424,13 +433,16 @@ class _GameScreenState extends State<GameScreen> {
               value: formatTime(_timeInSeconds),
             ),
             const Spacer(),
-            Center(
+            Padding(
+              padding: EdgeInsets.only(bottom: UIScale.h(12)),
+              child: Center(
               child: SizedBox(
                 width: logoWidth,
                 child: Image.asset(
-                  'assets/images/logo_ceta_puntaje.png',
-                  fit: BoxFit.contain,
+                'assets/images/logo_ceta_puntaje.png',
+                fit: BoxFit.contain,
                 ),
+              ),
               ),
             ),
           ],
